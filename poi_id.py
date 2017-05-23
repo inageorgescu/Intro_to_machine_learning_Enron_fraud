@@ -18,7 +18,7 @@ import sklearn.model_selection
 import sklearn.metrics
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-
+from sklearn.svm import SVC
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
@@ -107,8 +107,17 @@ enrondf = enrondf.drop(outliers)
 
 enrondf['from_to_poi'] = enrondf['from_poi_to_this_person']*1.0 + enrondf['from_this_person_to_poi']*1.0
 
+# fraction_to_poi = from_this_person_to_poi/to_messages
+enrondf['fraction_to_poi'] = enrondf['from_this_person_to_poi']*1.0/enrondf['from_messages']
+plot1 = sns.JointGrid(enrondf['from_this_person_to_poi'], enrondf['from_messages'], space=0, size=5, ratio=25)
+plot1.plot_joint(plt.scatter, color="b")
+plt.show()
+
+# fraction_from_poi = from_poi_to_this_person/to_messages
+enrondf['fraction_from_poi'] = enrondf['from_poi_to_this_person']*1.0/enrondf['to_messages']
+
 #feature list for grading
-my_feature_list = features_list + ['from_to_poi']
+my_feature_list = features_list + ['from_to_poi'] + ['fraction_to_poi'] + ['fraction_from_poi']
 
 #Drop columns with too many missing values
 columns_to_delete = ['deferral_payments', 'restricted_stock_deferred',
@@ -231,7 +240,7 @@ def tune_and_eval_clf(clf, params, features, labels):
     target_names = ['NON-POI', 'POI']
     
     result = sklearn.metrics.classification_report( labels_test, labels_pred, target_names=target_names )
-    print 'Result tunning:'
+    print 'Result tuning:'
     print result
     
     precision, recall, fscore, support = sklearn.metrics.precision_recall_fscore_support(labels_test, labels_pred, labels=target_names, average='binary')
@@ -264,6 +273,14 @@ dt_params = {"clf__min_samples_leaf": [2, 6, 10, 12],
 tune_and_eval_clf(dt_clf, dt_params, features, labels)
 
 
+##Support Vector Machine Classifier
+print 'TRYING SUPPORT VECTOR MACHINES'
+svc_clf = SVC()
+svc_params = {'clf__C': [1000], 'clf__gamma': [0.001], 'clf__kernel': ['rbf']}
+
+tune_and_eval_clf(svc_clf, svc_params, features, labels)
+
+
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
 ### check your results. You do not need to change anything below, but make sure
 ### that the version of poi_id.py that you submit can be run on its own and
@@ -282,7 +299,11 @@ def select_and_dump(algorithm):
     elif algorithm == 'decisiontree':
         my_clf = DecisionTreeClassifier(criterion='gini', max_depth=None, min_samples_leaf=2, min_samples_split=6,random_state=42)
         number_best_features = 7 
-      
+
+    elif algorithm in ['svc', 'svm', 'supportvectormachines']:
+        my_clf = SVC(C=1000, gamma=0.001, kernel='rbf')
+        number_best_features = 7 
+        
     clf = my_clf
     best_feature_list = [x[0] for x in sorted_pairs[:number_best_features]]
     
@@ -298,6 +319,6 @@ print len(my_dataset)
 print len(my_feature_list)
 print my_feature_list
 
-select_and_dump('logisticregression')
+select_and_dump('decisiontree')
 
 #sources: https://github.com/lyvinhhung/Udacity-Data-Analyst-Nanodegree/blob/master/p5%20-%20Identify%20Fraud%20from%20Enron%20Email/scripts/poi_id.py
