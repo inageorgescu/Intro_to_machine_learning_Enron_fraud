@@ -215,7 +215,7 @@ def tune_and_eval_clf(clf, params, features, labels):
     
     pipeline = sklearn.pipeline.Pipeline(steps)
     
-    parameters = dict(feature_selection__k=[7, 10])
+    parameters = dict(feature_selection__k=[1, 3, 5, 7, 10, 13, 15])
     parameters.update(params)
 
     features_train, features_test, labels_train, labels_test = sklearn.model_selection.train_test_split(features, labels, test_size=0.3, random_state=42)
